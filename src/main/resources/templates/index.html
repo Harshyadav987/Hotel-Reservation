@@ -4,75 +4,113 @@
     <title>Hotel Room Reservation</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom right, #141E30, #243B55);
+            color: #ecf0f1;
             text-align: center;
+            padding: 20px;
+            margin: 0;
         }
-        h1 { margin-bottom: 20px; }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #f39c12;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
 
         .controls {
             margin-bottom: 20px;
         }
+
         input[type="number"] {
-            width: 100px;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        button {
-            padding: 8px 16px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 5px;
-            background: #333;
-            color: #fff;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #555;
+            width: 120px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #7f8c8d;
+            font-size: 14px;
         }
 
-        .grid {
-            display: inline-block;
-            padding: 10px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            background: #e67e22;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
         }
+
+        button:hover {
+            background: #d35400;
+        }
+
+        .building {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
         .floor {
             display: flex;
-            justify-content: center;
-            margin-bottom: 5px;
+            align-items: center;
+            margin-bottom: 8px;
         }
+
         .floor-label {
             width: 60px;
             text-align: right;
-            margin-right: 5px;
             font-weight: bold;
+            margin-right: 8px;
         }
+
+        .rooms {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+
         .room {
             width: 50px;
             height: 50px;
-            border: 1px solid #333;
+            border-radius: 8px;
+            background: #7f8c8d;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin: 2px;
             font-size: 10px;
-            border-radius: 5px;
-            transition: transform 0.2s;
+            color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
+
         .room:hover {
             transform: scale(1.1);
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
         }
-        .booked {
-            background-color: #e74c3c;
-            color: #fff;
-        }
+
         .available {
-            background-color: #2ecc71;
-            color: #fff;
+            background: #27ae60;
+        }
+
+        .booked {
+            background: #c0392b;
+        }
+
+        .room-icon {
+            font-size: 14px;
+        }
+
+        .travel-time-box {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #7f8c8d;
+            padding: 10px;
+            margin-top: 20px;
+            display: inline-block;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -92,17 +130,22 @@
     </form>
 </div>
 
-<div class="grid">
+<div class="building">
     <div th:each="floor : ${#numbers.sequence(10,1)}" class="floor">
-        <div class="floor-label">F${floor}</div>
-        <div th:each="room : ${rooms}"
-             th:if="${room.floor} == ${floor}"
-             th:class="'room ' + (${room.booked} ? 'booked' : 'available')"
-             th:title="'Room ' + ${room.roomNumber}">
-            <span th:text="${room.roomNumber}"></span>
+        <div class="floor-label">F<span th:text="${floor}">X</span></div>
+        <div class="rooms">
+            <div th:each="room : ${rooms}"
+                 th:if="${room.floor} == ${floor}"
+                 th:class="'room ' + (${room.booked} ? 'booked' : 'available')"
+                 th:title="'Room ' + ${room.roomNumber}">
+                <div class="room-icon">🏨</div>
+                <div th:text="${room.roomNumber}">101</div>
+            </div>
         </div>
     </div>
 </div>
+
+
 
 </body>
 </html>

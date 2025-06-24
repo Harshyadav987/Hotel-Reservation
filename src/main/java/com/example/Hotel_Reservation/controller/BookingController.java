@@ -6,6 +6,7 @@ import com.example.Hotel_Reservation.model.Room;
 import com.example.Hotel_Reservation.repository.RoomRepository;
 import com.example.Hotel_Reservation.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,13 @@ public class BookingController {
     public Booking bookRooms(@RequestParam int count) {
         return bookingService.bookRooms(count);
     }
+
+    @GetMapping("/")
+    public String index(Model model) {
+        model.addAttribute("rooms", roomRepo.findAll());
+        return "index";
+    }
+
 
     @PostMapping("/reset")
     public void reset() {

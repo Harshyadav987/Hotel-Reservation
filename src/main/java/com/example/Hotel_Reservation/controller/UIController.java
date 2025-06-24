@@ -44,6 +44,8 @@ public class UIController {
         return "index";
     }
 
+
+
     @PostMapping("/randomize")
     public String randomize(Model model) {
         List<Room> rooms = roomRepo.findAll();
