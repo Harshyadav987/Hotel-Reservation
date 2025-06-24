@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +42,9 @@ public class BookingService {
         }
 
         // Across floors (simplified: pick first N rooms)
-        List<Room> selected = availableRooms.stream().limit(requestedCount).collect(Collectors.toList());
+        List<Room> selected = pickBestAcrossFloors(availableRooms, requestedCount);
         return finalizeBooking(selected);
+
     }
 
     private List<Room> pickBestOnFloor(List<Room> floorRooms, int requestedCount) {
@@ -74,17 +76,51 @@ public class BookingService {
         bookingRepo.save(booking);
         return booking;
     }
-
     private int calculateTravelTime(List<Room> rooms) {
         if (rooms.size() < 2) return 0;
         rooms.sort(Comparator.comparing(Room::getFloor).thenComparing(Room::getRoomNumber));
         Room first = rooms.get(0);
         Room last = rooms.get(rooms.size() - 1);
         int vertical = Math.abs(last.getFloor() - first.getFloor()) * 2;
-        int horizontal = (first.getFloor() == last.getFloor())
-                ? Math.abs(last.getRoomNumber() - first.getRoomNumber())
-                : 0;
+        int horizontal = (first.getFloor() == last.getFloor()) ?
+                Math.abs(last.getRoomNumber() - first.getRoomNumber()) : 0;
         return vertical + horizontal;
     }
+    private List<List<Room>> generateCombinations(List<Room> rooms, int count) {
+        List<List<Room>> result = new ArrayList<>();
+        generateCombRecursive(rooms, count, 0, new ArrayList<>(), result);
+        return result;
+    }
+
+    private List<Room> pickBestAcrossFloors(List<Room> rooms, int requestedCount) {
+        List<List<Room>> combinations = generateCombinations(rooms, requestedCount);
+        List<Room> bestCombo = null;
+        int minTime = Integer.MAX_VALUE;
+
+        for (List<Room> combo : combinations) {
+            int time = calculateTravelTime(combo);
+            if (time < minTime) {
+                minTime = time;
+                bestCombo = combo;
+            }
+        }
+        return bestCombo;
+    }
+
+
+    private void generateCombRecursive(List<Room> rooms, int count, int index,
+                                       List<Room> current, List<List<Room>> result) {
+        if (current.size() == count) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+        for (int i = index; i < rooms.size(); i++) {
+            current.add(rooms.get(i));
+            generateCombRecursive(rooms, count, i + 1, current, result);
+            current.remove(current.size() - 1);
+        }
+    }
+
+
 }
 

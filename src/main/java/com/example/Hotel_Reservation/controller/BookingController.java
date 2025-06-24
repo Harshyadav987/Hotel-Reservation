@@ -33,11 +33,11 @@ public class BookingController {
     }
 
     @PostMapping("/randomize")
-    public void randomize() {
+    public List<Room> randomize() {
         List<Room> rooms = roomRepo.findAll();
         Random rand = new Random();
         rooms.forEach(r -> r.setBooked(rand.nextBoolean()));
-        roomRepo.saveAll(rooms);
+        return roomRepo.saveAll(rooms);
     }
 
     @GetMapping("/rooms")

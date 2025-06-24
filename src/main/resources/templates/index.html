@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Hotel Room Reservation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f4f4f4;
+            text-align: center;
+        }
+        h1 { margin-bottom: 20px; }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+
+        .grid {
+            display: inline-block;
+            padding: 10px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .floor {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        .floor-label {
+            width: 60px;
+            text-align: right;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        .room {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            font-size: 10px;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        .room:hover {
+            transform: scale(1.1);
+        }
+        .booked {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        .available {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<h1>Hotel Room Reservation</h1>
+
+<div class="controls">
+    <form action="/book" method="post" style="display:inline;">
+        <input type="number" name="count" min="1" max="5" placeholder="No of Rooms" required>
+        <button type="submit">Book</button>
+    </form>
+    <form action="/reset" method="post" style="display:inline;">
+        <button type="submit">Reset</button>
+    </form>
+    <form action="/randomize" method="post" style="display:inline;">
+        <button type="submit">Random</button>
+    </form>
+</div>
+
+<div class="grid">
+    <div th:each="floor : ${#numbers.sequence(10,1)}" class="floor">
+        <div class="floor-label">F${floor}</div>
+        <div th:each="room : ${rooms}"
+             th:if="${room.floor} == ${floor}"
+             th:class="'room ' + (${room.booked} ? 'booked' : 'available')"
+             th:title="'Room ' + ${room.roomNumber}">
+            <span th:text="${room.roomNumber}"></span>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
