@@ -1,6 +1,5 @@
 package com.example.Hotel_Reservation.service;
 
-
 import com.example.Hotel_Reservation.model.Booking;
 import com.example.Hotel_Reservation.model.Room;
 import com.example.Hotel_Reservation.repository.BookingRepository;
@@ -9,16 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
     @Autowired
     private RoomRepository roomRepo;
+
     @Autowired
     private BookingRepository bookingRepo;
 
@@ -32,7 +29,7 @@ public class BookingService {
         Map<Integer, List<Room>> roomsByFloor = availableRooms.stream()
                 .collect(Collectors.groupingBy(Room::getFloor));
 
-        // Try same floor
+        // First try: same floor, best horizontal cluster
         for (var entry : roomsByFloor.entrySet()) {
             List<Room> floorRooms = entry.getValue();
             if (floorRooms.size() >= requestedCount) {
@@ -41,20 +38,20 @@ public class BookingService {
             }
         }
 
-        // Across floors (simplified: pick first N rooms)
+        // Fallback: best cross-floor combination (heuristic)
         List<Room> selected = pickBestAcrossFloors(availableRooms, requestedCount);
         return finalizeBooking(selected);
-
     }
 
     private List<Room> pickBestOnFloor(List<Room> floorRooms, int requestedCount) {
-        floorRooms.sort(Comparator.comparing(Room::getRoomNumber));
+        // Sort by position on floor (left to right)
+        floorRooms.sort(Comparator.comparingInt(this::getPositionOnFloor));
         List<Room> best = null;
         int minSpan = Integer.MAX_VALUE;
 
         for (int i = 0; i <= floorRooms.size() - requestedCount; i++) {
-            int span = floorRooms.get(i + requestedCount - 1).getRoomNumber() -
-                    floorRooms.get(i).getRoomNumber();
+            int span = getPositionOnFloor(floorRooms.get(i + requestedCount - 1)) -
+                    getPositionOnFloor(floorRooms.get(i));
             if (span < minSpan) {
                 minSpan = span;
                 best = floorRooms.subList(i, i + requestedCount);
@@ -63,64 +60,63 @@ public class BookingService {
         return best;
     }
 
+    private List<Room> pickBestAcrossFloors(List<Room> rooms, int requestedCount) {
+        // Sort rooms by (floor, position) to favor close clusters
+        rooms.sort(Comparator
+                .comparingInt(Room::getFloor)
+                .thenComparingInt(this::getPositionOnFloor));
+
+        // Greedy: pick N rooms that are closest together vertically + horizontally
+        List<Room> best = null;
+        int minTime = Integer.MAX_VALUE;
+
+        for (int i = 0; i <= rooms.size() - requestedCount; i++) {
+            List<Room> candidate = rooms.subList(i, i + requestedCount);
+            int time = calculateTravelTime(candidate);
+            if (time < minTime) {
+                minTime = time;
+                best = new ArrayList<>(candidate);
+            }
+        }
+        return best;
+    }
+
+    private int getPositionOnFloor(Room room) {
+        // e.g. 101 -> 1 -> 0 index, 110 -> 10 -> 9 index
+        int num = room.getRoomNumber() % 100;
+        return num - 1;
+    }
+
+    private int calculateTravelTime(List<Room> rooms) {
+        if (rooms.size() < 2) return 0;
+
+        rooms.sort(Comparator.comparingInt(Room::getFloor)
+                .thenComparingInt(this::getPositionOnFloor));
+
+        Room first = rooms.get(0);
+        Room last = rooms.get(rooms.size() - 1);
+
+        int vertical = Math.abs(last.getFloor() - first.getFloor()) * 2;
+        int horizontal = (first.getFloor() == last.getFloor())
+                ? Math.abs(getPositionOnFloor(last) - getPositionOnFloor(first))
+                : 0;
+
+        return vertical + horizontal;
+    }
+
     private Booking finalizeBooking(List<Room> selectedRooms) {
         selectedRooms.forEach(r -> r.setBooked(true));
         roomRepo.saveAll(selectedRooms);
 
         Booking booking = new Booking();
         booking.setBookingTime(LocalDateTime.now());
-        booking.setBookedRoomNumbers(selectedRooms.stream()
-                .map(Room::getRoomNumber)
-                .collect(Collectors.toList()));
+        booking.setBookedRoomNumbers(
+                selectedRooms.stream()
+                        .map(Room::getRoomNumber)
+                        .collect(Collectors.toList())
+        );
         booking.setTotalTravelTime(calculateTravelTime(selectedRooms));
         bookingRepo.save(booking);
         return booking;
     }
-    private int calculateTravelTime(List<Room> rooms) {
-        if (rooms.size() < 2) return 0;
-        rooms.sort(Comparator.comparing(Room::getFloor).thenComparing(Room::getRoomNumber));
-        Room first = rooms.get(0);
-        Room last = rooms.get(rooms.size() - 1);
-        int vertical = Math.abs(last.getFloor() - first.getFloor()) * 2;
-        int horizontal = (first.getFloor() == last.getFloor()) ?
-                Math.abs(last.getRoomNumber() - first.getRoomNumber()) : 0;
-        return vertical + horizontal;
-    }
-    private List<List<Room>> generateCombinations(List<Room> rooms, int count) {
-        List<List<Room>> result = new ArrayList<>();
-        generateCombRecursive(rooms, count, 0, new ArrayList<>(), result);
-        return result;
-    }
-
-    private List<Room> pickBestAcrossFloors(List<Room> rooms, int requestedCount) {
-        List<List<Room>> combinations = generateCombinations(rooms, requestedCount);
-        List<Room> bestCombo = null;
-        int minTime = Integer.MAX_VALUE;
-
-        for (List<Room> combo : combinations) {
-            int time = calculateTravelTime(combo);
-            if (time < minTime) {
-                minTime = time;
-                bestCombo = combo;
-            }
-        }
-        return bestCombo;
-    }
-
-
-    private void generateCombRecursive(List<Room> rooms, int count, int index,
-                                       List<Room> current, List<List<Room>> result) {
-        if (current.size() == count) {
-            result.add(new ArrayList<>(current));
-            return;
-        }
-        for (int i = index; i < rooms.size(); i++) {
-            current.add(rooms.get(i));
-            generateCombRecursive(rooms, count, i + 1, current, result);
-            current.remove(current.size() - 1);
-        }
-    }
-
-
 }
-
